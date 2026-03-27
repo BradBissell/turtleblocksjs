@@ -13,7 +13,7 @@
    global
 
    _, ValueBlock, NOINPUTERRORMSG, NANERRORMSG, last, FlowBlock,
-   FlowClampBlock, toFixed2, DEFAULTFONT,
+   FlowClampBlock, toFixed2, DEFAULTFONT, getMunsellColor,
  */
 
 /* exported setupPenBlocks */
@@ -1224,6 +1224,278 @@ function setupPenBlocks(activity) {
         }
     }
 
+    class RainbowBlock extends FlowClampBlock {
+        constructor() {
+            super("rainbow");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Rainbow block automatically cycles through rainbow colors as the turtle draws."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: automatically cycle pen colors through a rainbow
+                name: _("rainbow"),
+                args: 1,
+                defaults: [5]
+            });
+            this.makeMacro((x, y) => [
+                [0, "rainbow", x, y, [null, 1, null, 2]],
+                [1, ["number", { value: 5 }], 0, 0, [0]],
+                [2, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[1] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            const step = args[0] === null ? 5 : args[0];
+
+            tur.painter._rainbowMode = true;
+            tur.painter._rainbowStep = step;
+
+            const listenerName = "_rainbow_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._rainbowMode = false;
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[1], 1];
+        }
+    }
+
+    class SparkleBlock extends FlowClampBlock {
+        constructor() {
+            super("sparkle");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Sparkle block replaces solid lines with scattered sparkle dots along the path."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: draw with sparkle dots instead of solid lines
+                name: _("sparkle"),
+                args: 2,
+                defaults: [3, 4]
+            });
+            this.makeMacro((x, y) => [
+                [0, "sparkle", x, y, [null, 1, 2, null, 3]],
+                [1, ["number", { value: 3 }], 0, 0, [0]],
+                [2, ["number", { value: 4 }], 0, 0, [0]],
+                [3, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[2] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            tur.painter._sparkleMode = true;
+            tur.painter._sparkleDensity = args[0] === null ? 3 : args[0];
+            tur.painter._sparkleSize = args[1] === null ? 4 : args[1];
+
+            const listenerName = "_sparkle_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._sparkleMode = false;
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[2], 1];
+        }
+    }
+
+    class GhostModeBlock extends FlowClampBlock {
+        constructor() {
+            super("ghostmode");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Ghost block draws lines that gradually fade from solid to transparent."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: draw with gradually fading transparency
+                name: _("ghost"),
+                args: 1,
+                defaults: [5]
+            });
+            this.makeMacro((x, y) => [
+                [0, "ghostmode", x, y, [null, 1, null, 2]],
+                [1, ["number", { value: 5 }], 0, 0, [0]],
+                [2, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[1] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            const savedAlpha = tur.painter._canvasAlpha;
+
+            tur.painter._ghostMode = true;
+            tur.painter._ghostFadeRate = args[0] === null ? 5 : args[0];
+            tur.painter._ghostDistance = 0;
+
+            const listenerName = "_ghost_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._ghostMode = false;
+                tur.painter._canvasAlpha = savedAlpha;
+                tur.painter._processColor();
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[1], 1];
+        }
+    }
+
+    class SoundTurtleBlock extends FlowClampBlock {
+        constructor() {
+            super("soundturtle");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Sound Turtle block plays musical notes based on the turtle's heading as it moves."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: play sounds as the turtle moves
+                name: _("sound turtle")
+            });
+            this.makeMacro((x, y) => [
+                [0, "soundturtle", x, y, [null, null, 1]],
+                [1, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[0] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            tur.painter._soundTurtleMode = true;
+
+            const listenerName = "_soundturtle_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._soundTurtleMode = false;
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[0], 1];
+        }
+    }
+
+    class SpeedTrailBlock extends FlowClampBlock {
+        constructor() {
+            super("speedtrail");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Speed Trail block varies line thickness based on movement distance."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: vary line thickness based on movement speed
+                name: _("speed trail"),
+                args: 1,
+                defaults: [1]
+            });
+            this.makeMacro((x, y) => [
+                [0, "speedtrail", x, y, [null, 1, null, 2]],
+                [1, ["number", { value: 1 }], 0, 0, [0]],
+                [2, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[1] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            tur.painter._speedTrailMode = true;
+            tur.painter._speedTrailScale = args[0] === null ? 1 : args[0];
+
+            const listenerName = "_speedtrail_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._speedTrailMode = false;
+                tur.painter.turtle.ctx.lineWidth = tur.painter._stroke;
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[1], 1];
+        }
+    }
+
+    class GradientFillBlock extends FlowClampBlock {
+        constructor() {
+            super("gradientfill");
+            this.setPalette("pen", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Gradient Fill block fills shapes with a smooth color gradient."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: fill a shape with a smooth color gradient
+                name: _("gradient fill"),
+                args: 2,
+                defaults: [0, 50]
+            });
+            this.makeMacro((x, y) => [
+                [0, "gradientfill", x, y, [null, 1, 2, null, 3]],
+                [1, ["number", { value: 0 }], 0, 0, [0]],
+                [2, ["number", { value: 50 }], 0, 0, [0]],
+                [3, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[2] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            const startColor = args[0] === null ? 0 : args[0];
+            const endColor = args[1] === null ? 50 : args[1];
+
+            // Save original color
+            const savedColor = tur.painter.color;
+
+            // Start fill
+            tur.painter.doStartFill();
+
+            // Set up rainbow-like cycling from startColor to endColor
+            tur.painter._rainbowMode = true;
+            tur.painter._color = startColor;
+            const range = endColor - startColor;
+            tur.painter._rainbowStep = range / 36; // cycle over ~36 steps
+
+            tur.painter._canvasColor = getMunsellColor(tur.painter._color, tur.painter._value, tur.painter._chroma);
+            tur.painter._processColor();
+
+            const listenerName = "_gradientfill_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._rainbowMode = false;
+                tur.painter.doEndFill();
+                tur.painter._color = savedColor;
+                tur.painter._canvasColor = getMunsellColor(tur.painter._color, tur.painter._value, tur.painter._chroma);
+                tur.painter._processColor();
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[2], 1];
+        }
+    }
+
     new PurpleBlock().setup(activity);
     new BlueBlock().setup(activity);
     new GreenBlock().setup(activity);
@@ -1251,4 +1523,10 @@ function setupPenBlocks(activity) {
     new SetShadeBlock().setup(activity);
     new SetGreyBlock().setup(activity);
     new SetColorBlock().setup(activity);
+    new RainbowBlock().setup(activity);
+    new SparkleBlock().setup(activity);
+    new GhostModeBlock().setup(activity);
+    new SoundTurtleBlock().setup(activity);
+    new SpeedTrailBlock().setup(activity);
+    new GradientFillBlock().setup(activity);
 }

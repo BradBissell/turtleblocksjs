@@ -95,6 +95,31 @@ class Painter {
         this._hollowState = false;
         this._penDown = true;
         this.wrap = null;
+
+        // Rainbow mode state
+        this._rainbowMode = false;
+        this._rainbowStep = 5;
+
+        // Sparkle trail state
+        this._sparkleMode = false;
+        this._sparkleDensity = 3;
+        this._sparkleSize = 4;
+
+        // Ghost mode state
+        this._ghostMode = false;
+        this._ghostFadeRate = 5;
+        this._ghostDistance = 0;
+
+        // Speed trail state
+        this._speedTrailMode = false;
+        this._speedTrailScale = 1;
+
+        // Mirror mode state
+        this._mirrorMode = false;
+        this._mirrorAxis = "horizontal";
+
+        // Sound turtle mode state
+        this._soundTurtleMode = false;
     }
 
     // ========= Setters, Getters =============================================
@@ -668,6 +693,8 @@ class Painter {
         }
 
         this.activity.refreshCanvas();
+        // Apply rainbow hook for arc
+        if (this._rainbowMode) this._advanceRainbow();
     }
 
     /**
@@ -707,6 +734,254 @@ class Painter {
         }
     }
 
+    // ========= New Feature Helpers ============================================
+
+    /**
+     * Advances rainbow color by step amount.
+     * Called after each drawing movement when rainbow mode is active.
+     */
+    _advanceRainbow() {
+        if (this._rainbowMode) {
+            this._color = (this._color + this._rainbowStep) % 100;
+            this._canvasColor = getMunsellColor(this._color, this._value, this._chroma);
+            this._processColor();
+        }
+    }
+
+    /**
+     * Draws sparkle dots along the line from (ox,oy) to (nx,ny) in turtle coordinates.
+     */
+    _drawSparkles(ox, oy, nx, ny) {
+        if (!this._sparkleMode || !this._penDown) return;
+        const turtles = this.turtles;
+        const dist = Math.sqrt((nx - ox) * (nx - ox) + (ny - oy) * (ny - oy));
+        const numSparkles = Math.max(1, Math.floor(dist / (10 / this._sparkleDensity)));
+        const ctx = this.turtle.ctx;
+        const savedAlpha = this._canvasAlpha;
+
+        for (let i = 0; i < numSparkles; i++) {
+            const t = Math.random();
+            const sx = ox + (nx - ox) * t + (Math.random() - 0.5) * this._sparkleSize * 2;
+            const sy = oy + (ny - oy) * t + (Math.random() - 0.5) * this._sparkleSize * 2;
+            const screenX = turtles.turtleX2screenX(sx);
+            const screenY = turtles.turtleY2screenY(sy);
+            const size = Math.random() * this._sparkleSize + 1;
+
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+        }
+    }
+
+    /**
+     * Applies ghost mode fading based on cumulative distance.
+     */
+    _applyGhostFade(distance) {
+        if (!this._ghostMode) return;
+        this._ghostDistance += Math.abs(distance);
+        const fade = Math.max(0, 1 - (this._ghostDistance * this._ghostFadeRate) / 1000);
+        this._canvasAlpha = fade;
+        this._processColor();
+    }
+
+    /**
+     * Applies speed trail thickness based on forward distance.
+     */
+    _applySpeedTrail(distance) {
+        if (!this._speedTrailMode) return;
+        const baseStroke = this._stroke;
+        const scaledStroke = Math.max(1, baseStroke * (Math.abs(distance) / 50) * this._speedTrailScale);
+        this.turtle.ctx.lineWidth = scaledStroke;
+    }
+
+    /**
+     * Draws a mirrored copy of a line from (ox,oy) to (nx,ny) in turtle coordinates.
+     */
+    _drawMirror(ox, oy, nx, ny) {
+        if (!this._mirrorMode || !this._penDown) return;
+        const ctx = this.turtle.ctx;
+        const turtles = this.turtles;
+
+        let mox, moy, mnx, mny;
+        const axes = this._mirrorAxis === "both" ? ["horizontal", "vertical"] : [this._mirrorAxis];
+
+        for (const axis of axes) {
+            if (axis === "horizontal") {
+                mox = -ox; moy = oy; mnx = -nx; mny = ny;
+            } else {
+                mox = ox; moy = -oy; mnx = nx; mny = -ny;
+            }
+
+            const sox = turtles.turtleX2screenX(mox);
+            const soy = turtles.turtleY2screenY(moy);
+            const snx = turtles.turtleX2screenX(mnx);
+            const sny = turtles.turtleY2screenY(mny);
+
+            ctx.beginPath();
+            ctx.moveTo(sox, soy);
+            ctx.lineTo(snx, sny);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // For "both" mode, also draw the diagonal mirror
+        if (this._mirrorAxis === "both") {
+            mox = -ox; moy = -oy; mnx = -nx; mny = -ny;
+            const sox = turtles.turtleX2screenX(mox);
+            const soy = turtles.turtleY2screenY(moy);
+            const snx = turtles.turtleX2screenX(mnx);
+            const sny = turtles.turtleY2screenY(mny);
+
+            ctx.beginPath();
+            ctx.moveTo(sox, soy);
+            ctx.lineTo(snx, sny);
+            ctx.stroke();
+            ctx.closePath();
+        }
+    }
+
+    /**
+     * Plays a musical tone based on turtle's current heading.
+     * Uses Web Audio API for simple sine wave tones.
+     */
+    _playSoundForHeading() {
+        if (!this._soundTurtleMode) return;
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            // Map heading (0-360) to frequency (200-800 Hz)
+            const freq = 200 + (this.turtle.orientation / 360) * 600;
+            oscillator.frequency.value = freq;
+            oscillator.type = "sine";
+            gainNode.gain.value = 0.1;
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.start();
+            oscillator.stop(ctx.currentTime + 0.1);
+        } catch (e) {
+            // Silently fail if audio is not available
+        }
+    }
+
+    /**
+     * Stamps the turtle icon at its current position.
+     */
+    doStamp() {
+        const ctx = this.turtle.ctx;
+        const x = this.turtle.container.x;
+        const y = this.turtle.container.y;
+        const rotation = this.turtle.orientation;
+        const size = 20;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((rotation * Math.PI) / 180);
+
+        // Draw a simple turtle shape
+        this._processColor();
+        ctx.beginPath();
+        // Body
+        ctx.ellipse(0, 0, size * 0.6, size * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Head
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.9, size * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        // Legs
+        const legPositions = [
+            [-size * 0.5, -size * 0.3],
+            [size * 0.5, -size * 0.3],
+            [-size * 0.5, size * 0.3],
+            [size * 0.5, size * 0.3]
+        ];
+        for (const [lx, ly] of legPositions) {
+            ctx.beginPath();
+            ctx.arc(lx, ly, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+        this.activity.refreshCanvas();
+    }
+
+    /**
+     * Draws a firework burst at current position.
+     * @param {number} rays - number of rays
+     * @param {number} maxLength - maximum ray length
+     */
+    doFirework(rays, maxLength) {
+        const ctx = this.turtle.ctx;
+        const x = this.turtle.container.x;
+        const y = this.turtle.container.y;
+        const savedColor = this._color;
+
+        ctx.lineWidth = this._stroke;
+        ctx.lineCap = "round";
+
+        for (let i = 0; i < rays; i++) {
+            const angle = (Math.PI * 2 * i) / rays + (Math.random() - 0.5) * 0.3;
+            const length = maxLength * (0.3 + Math.random() * 0.7);
+
+            // Rainbow color per ray
+            this._color = (i * 100 / rays) % 100;
+            this._canvasColor = getMunsellColor(this._color, this._value, this._chroma);
+            this._processColor();
+
+            const ex = x + Math.cos(angle) * length;
+            const ey = y + Math.sin(angle) * length;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(ex, ey);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // Restore color
+        this._color = savedColor;
+        this._canvasColor = getMunsellColor(this._color, this._value, this._chroma);
+        this._processColor();
+        this.activity.refreshCanvas();
+    }
+
+    /**
+     * Draws an automatic spiral.
+     * @param {string} shape - "square", "triangle", or "circle"
+     * @param {number} size - base size
+     * @param {number} turns - number of turns
+     */
+    doSpiral(shape, size, turns) {
+        const sides = shape === "triangle" ? 3 : shape === "square" ? 4 : 36;
+        const anglePerSide = 360 / sides;
+        const totalSteps = sides * turns;
+        const sizeIncrement = size / totalSteps;
+
+        for (let i = 0; i < totalSteps; i++) {
+            const stepSize = sizeIncrement * (i + 1);
+            this.doForward(stepSize);
+            this.doRight(anglePerSide);
+        }
+    }
+
+    /**
+     * Executes a random walk.
+     * @param {number} steps - number of random steps
+     * @param {number} maxDist - maximum distance per step
+     * @param {number} maxAngle - maximum angle per turn
+     */
+    doRandomWalk(steps, maxDist, maxAngle) {
+        for (let i = 0; i < steps; i++) {
+            const angle = (Math.random() - 0.5) * 2 * maxAngle;
+            const dist = Math.random() * maxDist;
+            this.doRight(angle);
+            this.doForward(dist);
+        }
+    }
+
     // ========= Action =======================================================
 
     /**
@@ -715,10 +990,17 @@ class Painter {
      * @param steps - the number of steps the turtle goes forward by
      */
     doForward(steps, linePart) {
+        // Apply ghost fade before drawing
+        if (this._ghostMode) this._applyGhostFade(steps);
+        // Apply speed trail before drawing
+        if (this._speedTrailMode) this._applySpeedTrail(steps);
+
         this._processColor();
 
         if (!this._fillState) {
-            this.turtle.ctx.lineWidth = this.stroke;
+            this.turtle.ctx.lineWidth = this._speedTrailMode
+                ? Math.max(1, this._stroke * (Math.abs(steps) / 50) * this._speedTrailScale)
+                : this.stroke;
             this.turtle.ctx.lineCap = "round";
             this.turtle.ctx.beginPath();
             this.turtle.ctx.moveTo(this.turtle.container.x, this.turtle.container.y);
@@ -751,6 +1033,11 @@ class Painter {
         if (this._fillState || !wrap || !out) {
             this._move(ox, oy, nx, ny, true, linePart);
             this.activity.refreshCanvas();
+            // Apply new feature hooks
+            if (this._rainbowMode) this._advanceRainbow();
+            if (this._sparkleMode) this._drawSparkles(ox, oy, nx, ny);
+            if (this._mirrorMode) this._drawMirror(ox, oy, nx, ny);
+            if (this._soundTurtleMode) this._playSoundForHeading();
         } else {
             const stepUnit = 5;
             let xIncrease, yIncrease;
@@ -798,6 +1085,8 @@ class Painter {
             }
 
             this.activity.refreshCanvas();
+            // Apply new feature hooks
+            if (this._rainbowMode) this._advanceRainbow();
         }
     }
 

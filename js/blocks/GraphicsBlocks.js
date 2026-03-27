@@ -1215,6 +1215,182 @@ function setupGraphicsBlocks(activity) {
         }
     }
 
+    class SpiralBlock extends FlowBlock {
+        constructor() {
+            super("spiral", _("spiral"));
+            this.setPalette("graphics", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Spiral block draws an automatically expanding spiral."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                args: 3,
+                defaults: [4, 100, 5],
+                argLabels: [_("sides"), _("size"), _("turns")]
+            });
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args.length < 3) return;
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+
+            if (typeof args[0] === "string" || typeof args[1] === "string" || typeof args[2] === "string") {
+                activity.errorMsg(NANERRORMSG, blk);
+                return;
+            }
+
+            const sides = Math.max(3, Math.floor(args[0]));
+            const size = args[1];
+            const turns = args[2];
+
+            tur.painter.doSpiral(
+                sides === 3 ? "triangle" : sides === 4 ? "square" : "circle",
+                size,
+                turns
+            );
+        }
+    }
+
+    class MirrorBlock extends FlowClampBlock {
+        constructor() {
+            super("mirror");
+            this.setPalette("graphics", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Mirror block automatically mirrors all drawing along the specified axis."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                //.TRANS: mirror drawing along an axis
+                name: _("mirror"),
+                args: 1,
+                defaults: ["horizontal"],
+                argTypes: ["textin"]
+            });
+            this.makeMacro((x, y) => [
+                [0, "mirror", x, y, [null, 1, null, 2]],
+                [1, ["text", { value: "horizontal" }], 0, 0, [0]],
+                [2, "hidden", 0, 0, [0, null]]
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args[1] === undefined) return;
+
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+            const axis = args[0] === null ? "horizontal" : args[0];
+
+            tur.painter._mirrorMode = true;
+            tur.painter._mirrorAxis = axis;
+
+            const listenerName = "_mirror_" + turtle;
+            logo.setDispatchBlock(blk, turtle, listenerName);
+
+            const __listener = () => {
+                tur.painter._mirrorMode = false;
+            };
+            logo.setTurtleListener(turtle, listenerName, __listener);
+            return [args[1], 1];
+        }
+    }
+
+    class RandomWalkBlock extends FlowBlock {
+        constructor() {
+            super("randomwalk", _("random walk"));
+            this.setPalette("graphics", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Random Walk block makes the turtle take random steps for chaotic art."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                args: 3,
+                defaults: [100, 50, 90],
+                argLabels: [_("steps"), _("max distance"), _("max angle")]
+            });
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args.length < 3) return;
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+
+            if (typeof args[0] === "string" || typeof args[1] === "string" || typeof args[2] === "string") {
+                activity.errorMsg(NANERRORMSG, blk);
+                return;
+            }
+
+            tur.painter.doRandomWalk(
+                Math.max(1, Math.floor(args[0])),
+                Math.abs(args[1]),
+                Math.abs(args[2])
+            );
+        }
+    }
+
+    class TurtleStampBlock extends FlowBlock {
+        constructor() {
+            super("stamp", _("stamp"));
+            this.setPalette("graphics", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Stamp block stamps a copy of the turtle at its current position."),
+                "documentation",
+                ""
+            ]);
+        }
+
+        flow(args, logo, turtle, blk) {
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+
+            if (tur.singer.inNoteBlock.length > 0) {
+                tur.singer.embeddedGraphics[last(tur.singer.inNoteBlock)].push(blk);
+            } else {
+                tur.painter.doStamp();
+            }
+        }
+    }
+
+    class FireworkBlock extends FlowBlock {
+        constructor() {
+            super("firework", _("firework"));
+            this.setPalette("graphics", activity);
+            this.beginnerBlock(true);
+            this.setHelpString([
+                _("The Firework block draws an explosive starburst pattern at the turtle's position."),
+                "documentation",
+                ""
+            ]);
+            this.formBlock({
+                args: 2,
+                defaults: [20, 100],
+                argLabels: [_("rays"), _("max length")]
+            });
+        }
+
+        flow(args, logo, turtle, blk) {
+            if (args.length < 2) return;
+            const tur = activity.turtles.ithTurtle(activity.turtles.companionTurtle(turtle));
+
+            if (typeof args[0] === "string" || typeof args[1] === "string") {
+                activity.errorMsg(NANERRORMSG, blk);
+                return;
+            }
+
+            if (tur.singer.inNoteBlock.length > 0) {
+                tur.singer.embeddedGraphics[last(tur.singer.inNoteBlock)].push(blk);
+            } else {
+                tur.painter.doFirework(
+                    Math.max(1, Math.floor(args[0])),
+                    Math.abs(args[1])
+                );
+            }
+        }
+    }
+
     new HeadingBlock().setup(activity);
     new YBlock().setup(activity);
     new XBlock().setup(activity);
@@ -1232,4 +1408,9 @@ function setupGraphicsBlocks(activity) {
     new MLeftBlock().setup(activity);
     new BackBlock().setup(activity);
     new ForwardBlock().setup(activity);
+    new SpiralBlock().setup(activity);
+    new MirrorBlock().setup(activity);
+    new RandomWalkBlock().setup(activity);
+    new TurtleStampBlock().setup(activity);
+    new FireworkBlock().setup(activity);
 }
