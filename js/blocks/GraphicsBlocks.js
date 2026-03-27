@@ -1219,7 +1219,6 @@ function setupGraphicsBlocks(activity) {
         constructor() {
             super("spiral", _("spiral"));
             this.setPalette("graphics", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Spiral block draws an automatically expanding spiral."),
                 "documentation",
@@ -1257,7 +1256,6 @@ function setupGraphicsBlocks(activity) {
         constructor() {
             super("mirror");
             this.setPalette("graphics", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Mirror block automatically mirrors all drawing along the specified axis."),
                 "documentation",
@@ -1301,7 +1299,6 @@ function setupGraphicsBlocks(activity) {
         constructor() {
             super("randomwalk", _("random walk"));
             this.setPalette("graphics", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Random Walk block makes the turtle take random steps for chaotic art."),
                 "documentation",
@@ -1335,7 +1332,6 @@ function setupGraphicsBlocks(activity) {
         constructor() {
             super("stamp", _("stamp"));
             this.setPalette("graphics", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Stamp block stamps a copy of the turtle at its current position."),
                 "documentation",
@@ -1358,7 +1354,6 @@ function setupGraphicsBlocks(activity) {
         constructor() {
             super("firework", _("firework"));
             this.setPalette("graphics", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Firework block draws an explosive starburst pattern at the turtle's position."),
                 "documentation",

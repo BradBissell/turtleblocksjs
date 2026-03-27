@@ -1228,7 +1228,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("rainbow");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Rainbow block automatically cycles through rainbow colors as the turtle draws."),
                 "documentation",
@@ -1271,7 +1270,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("sparkle");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Sparkle block replaces solid lines with scattered sparkle dots along the path."),
                 "documentation",
@@ -1314,7 +1312,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("ghostmode");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Ghost block draws lines that gradually fade from solid to transparent."),
                 "documentation",
@@ -1360,7 +1357,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("soundturtle");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Sound Turtle block plays musical notes based on the turtle's heading as it moves."),
                 "documentation",
@@ -1397,7 +1393,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("speedtrail");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Speed Trail block varies line thickness based on movement distance."),
                 "documentation",
@@ -1439,7 +1434,6 @@ function setupPenBlocks(activity) {
         constructor() {
             super("gradientfill");
             this.setPalette("pen", activity);
-            this.beginnerBlock(true);
             this.setHelpString([
                 _("The Gradient Fill block fills shapes with a smooth color gradient."),
                 "documentation",
